@@ -1,76 +1,129 @@
 ---
-# 1. Install required packages
-- name: Install dependencies (Ubuntu)
-  apt:
-    name:
-      - wget
-      - tar
-      - postgresql
-      - postgresql-contrib
-      - python3-psycopg2
+# ======================================================
+# 0. SUPPORTED OS CHECK
+# ======================================================
+- name: Validate supported OS family
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat', 'Amazon']
+    fail_msg: "Unsupported OS. This role works only with Debian/Ubuntu or RedHat/CentOS/Amazon Linux families."
+    success_msg: "OS family {{ ansible_os_family }} is supported."
+
+
+# ======================================================
+# 1. SET OS-SPECIFIC VARIABLES
+# ======================================================
+- name: Set variables for Debian/Ubuntu
+  ansible.builtin.set_fact:
+    semaphore_packages_os: "{{ semaphore_common_packages + semaphore_debian_packages }}"
+    postgres_service_name: "postgresql"
+  when: ansible_os_family == "Debian"
+
+- name: Set variables for RedHat/CentOS/Amazon
+  ansible.builtin.set_fact:
+    semaphore_packages_os: "{{ semaphore_common_packages + semaphore_redhat_packages }}"
+    postgres_service_name: "postgresql"
+  when: ansible_os_family in ["RedHat", "Amazon"]
+
+
+# ======================================================
+# 2. INSTALL PACKAGES
+# ======================================================
+- name: Install packages on Debian/Ubuntu
+  ansible.builtin.apt:
+    name: "{{ semaphore_packages_os }}"
     state: present
     update_cache: yes
+  when: ansible_os_family == "Debian"
 
-# 2. Ensure PostgreSQL service is running
+- name: Install packages on RedHat/CentOS/Amazon
+  ansible.builtin.yum:
+    name: "{{ semaphore_packages_os }}"
+    state: present
+  when: ansible_os_family in ["RedHat", "Amazon"]
+
+
+# ======================================================
+# 3. POSTGRES INITIALIZATION FOR REDHAT BASED OS
+# ======================================================
+- name: Initialize PostgreSQL (RedHat/Amazon)
+  ansible.builtin.command: "postgresql-setup --initdb"
+  args:
+    creates: "/var/lib/pgsql/data/PG_VERSION"
+  when: ansible_os_family in ["RedHat", "Amazon"]
+
+
+# ======================================================
+# 4. START POSTGRESQL
+# ======================================================
 - name: Ensure PostgreSQL is running
-  service:
-    name: postgresql
+  ansible.builtin.service:
+    name: "{{ postgres_service_name }}"
     state: started
     enabled: yes
 
-# 3. Create PostgreSQL user (safe + idempotent)
+
+# ======================================================
+# 5. CREATE POSTGRESQL USER
+# ======================================================
 - name: Check if PostgreSQL user exists
-  command: >
+  ansible.builtin.command: >
     sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ pg_user }}';"
-  register: user_exists
+  register: pg_user_exists
+  changed_when: false
 
-- name: Create PostgreSQL user if not exists
-  command: >
+- name: Create PostgreSQL user
+  ansible.builtin.command: >
     sudo -u postgres psql -c "CREATE ROLE {{ pg_user }} LOGIN PASSWORD '{{ pg_pass }}';"
-  when: user_exists.stdout.strip() == ""
+  when: pg_user_exists.stdout.strip() == ""
 
-# 4. Create PostgreSQL database (safe + idempotent)
+
+# ======================================================
+# 6. CREATE POSTGRESQL DATABASE
+# ======================================================
 - name: Check if database exists
-  command: >
+  ansible.builtin.command: >
     sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='{{ pg_db }}';"
-  register: db_exists
+  register: pg_db_exists
+  changed_when: false
 
-- name: Create PostgreSQL database if not exists
-  command: >
+- name: Create PostgreSQL database
+  ansible.builtin.command: >
     sudo -u postgres psql -c "CREATE DATABASE {{ pg_db }} OWNER {{ pg_user }};"
-  when: db_exists.stdout.strip() == ""
+  when: pg_db_exists.stdout.strip() == ""
 
-# 5. Create semaphore system user
+
+# ======================================================
+# 7. CREATE SYSTEM USER FOR SEMAPHORE
+# ======================================================
 - name: Create semaphore system user
-  user:
-    name: semaphore
+  ansible.builtin.user:
+    name: "{{ semaphore_user }}"
     system: yes
     create_home: no
 
-# 6. Download semaphore
+
+# ======================================================
+# 8. DOWNLOAD SEMAPHORE BINARY
+# ======================================================
 - name: Download semaphore
-  get_url:
+  ansible.builtin.get_url:
     url: "https://github.com/ansible-semaphore/semaphore/releases/download/v{{ semaphore_version }}/semaphore_{{ semaphore_version }}_linux_amd64.tar.gz"
     dest: /tmp/semaphore.tar.gz
 
-# 7. Create semaphore installation directory
+
+# ======================================================
+# 9. CREATE DIRECTORIES
+# ======================================================
 - name: Create semaphore install directory
-  file:
+  ansible.builtin.file:
     path: "{{ semaphore_install_dir }}"
     state: directory
-    owner: semaphore
-    group: semaphore
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
     mode: "0755"
 
-# 8. Extract semaphore
-- name: Extract semaphore
-  unarchive:
-    src: /tmp/semaphore.tar.gz
-    dest: "{{ semaphore_install_dir }}"
-    remote_src: yes
-
-# 9. Create semaphore directories
-- name: Create semaphore directories
+- name: Create config/data/temp directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -82,29 +135,51 @@
     - "{{ semaphore_data_dir }}"
     - "/tmp/semaphore"
 
-# 10. Create semaphore config
-- name: Create semaphore config
-  template:
+
+# ======================================================
+# 10. EXTRACT SEMAPHORE
+# ======================================================
+- name: Extract semaphore
+  ansible.builtin.unarchive:
+    src: /tmp/semaphore.tar.gz
+    dest: "{{ semaphore_install_dir }}"
+    remote_src: yes
+
+
+# ======================================================
+# 11. CREATE CONFIG FILE
+# ======================================================
+- name: Create config json
+  ansible.builtin.template:
     src: config.json.j2
     dest: "{{ semaphore_config_dir }}/config.json"
     owner: "{{ semaphore_user }}"
     group: "{{ semaphore_group }}"
     mode: "0644"
 
-# 11. Install semaphore systemd service
-- name: Add systemd service
-  template:
+
+# ======================================================
+# 12. INSTALL SYSTEMD SERVICE
+# ======================================================
+- name: Install semaphore systemd service
+  ansible.builtin.template:
     src: semaphore.service.j2
     dest: /etc/systemd/system/semaphore.service
 
-# 12. Reload systemd
-- name: Reload daemon
-  systemd:
+
+# ======================================================
+# 13. RELOAD SYSTEMD
+# ======================================================
+- name: Reload systemd
+  ansible.builtin.systemd:
     daemon_reload: yes
 
-# 13. Start semaphore service
-- name: Start semaphore
-  systemd:
+
+# ======================================================
+# 14. START SEMAPHORE SERVICE
+# ======================================================
+- name: Start semaphore service
+  ansible.builtin.systemd:
     name: semaphore
     state: started
     enabled: yes

@@ -1,0 +1,40 @@
+---
+# Semaphore system user/group
+semaphore_user: semaphore
+semaphore_group: semaphore
+
+# Semaphore version to install
+semaphore_version: "2.9.75"
+
+# Install + config + data paths
+semaphore_install_dir: /opt/semaphore
+semaphore_config_dir: /etc/semaphore
+semaphore_data_dir: /var/lib/semaphore
+
+# PostgreSQL credentials
+pg_user: semaphore
+pg_pass: semaphore
+pg_db: semaphore
+
+# Common packages for all OS families
+semaphore_common_packages:
+  - wget
+  - tar
+  - python3-psycopg2
+
+# Debian/Ubuntu specific packages
+semaphore_debian_packages:
+  - postgresql
+  - postgresql-contrib
+
+# RedHat/CentOS/Amazon Linux specific packages
+semaphore_redhat_packages:
+  - postgresql-server
+  - postgresql-contrib
+
+# Service names
+semaphore_postgres_service_debian: postgresql
+semaphore_postgres_service_redhat: postgresql
+
+# PostgreSQL data dir for RedHat family (for initdb check)
+semaphore_postgres_data_dir_redhat: /var/lib/pgsql/data
