@@ -1,0 +1,22 @@
+---
+semaphore_version: "2.9.75"
+
+# Binary related
+semaphore_install_dir: "/opt/semaphore"
+semaphore_binary_url: "https://github.com/semaphoreui/semaphore/releases/download/v{{ semaphore_version }}/semaphore_{{ semaphore_version }}_linux_amd64.tar.gz"
+
+# Service user/group
+semaphore_user: "semaphore"
+semaphore_group: "semaphore"
+
+# Config & data directories
+semaphore_config_dir: "/etc/semaphore"
+semaphore_data_dir: "/var/lib/semaphore"
+
+# PostgreSQL settings
+pg_user: "semaphore"
+pg_pass: "StrongPass123"
+pg_db: "semaphore"
+pg_host: "localhost"
+pg_port: 5432
+

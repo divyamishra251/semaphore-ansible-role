@@ -1,0 +1,10 @@
+- name: Install & configure Semaphore
+  hosts: aws_ec2
+  become: yes
+  vars:
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: /home/ubuntu/ap_south_mumbai.pem
+
+  roles:
+    - semaphore
+

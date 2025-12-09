@@ -1,0 +1,16 @@
+[Unit]
+Description=Semaphore UI
+After=network.target
+
+[Service]
+Type=simple
+User={{ semaphore_user }}
+Group={{ semaphore_group }}
+WorkingDirectory={{ semaphore_install_dir }}
+ExecStart={{ semaphore_install_dir }}/semaphore server --config {{ semaphore_config_dir }}/config.json
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
