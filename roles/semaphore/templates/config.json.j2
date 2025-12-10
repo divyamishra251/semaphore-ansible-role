@@ -7,10 +7,10 @@
     "options": null
   },
   "mysql": {
-    "host": "",
-    "user": "",
-    "pass": "",
-    "name": "",
+    "host": "{{ mysql_host }}:{{ mysql_port }}",
+    "user": "{{ mysql_user }}",
+    "pass": "{{ mysql_pass }}",
+    "name": "{{ mysql_db }}",
     "options": null
   },
   "bolt": {
@@ -20,10 +20,10 @@
     "name": "",
     "options": null
   },
-  "dialect": "postgres",
+  "dialect": "{{ semaphore_db_dialect }}",
   "port": "3000",
   "interface": "",
-  "tmp_path": "/tmp/semaphore",
+  "tmp_path": "{{ semaphore_tmp_path }}",
   "cookie_hash": "changeme-cookie-hash",
   "cookie_encryption": "changeme-cookie-encryption",
   "access_key_encryption": "changeme-access-key-encryption",
