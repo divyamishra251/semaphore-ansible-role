@@ -1,61 +1,36 @@
 # Semaphore Ansible Role
 
-**Author:** Divya Mishra
-**Last Updated:** 10 Dec 2025
-
 ---
 
-## 📌 Overview
+## What is Semaphore?
 
-This Ansible role installs and configures **Semaphore**, a lightweight and modern web UI for running Ansible playbooks.
-The role is designed to be:
+Semaphore is an open-source UI used for running and managing Ansible automation.
+It provides:
 
-* **OS-independent** (supports Ubuntu/Debian, RHEL/CentOS, Amazon Linux)
-* **Database-flexible** (PostgreSQL or MySQL)
-* **Idempotent & production ready**
-* **Compatible with both static and AWS dynamic EC2 inventories**
-
----
-
-## 📘 What is Semaphore?
-
-Semaphore is an open-source UI that provides:
-
-* Project & template management
-* Inventory and credentials management
+* Projects, templates, and inventories
 * Role-based access control
-* Job execution history
-* Scheduling
-* Simple and secure UI for Ansible automation
+* Job logs and execution history
+* Scheduling support
+* Centralized credential management
+* Simple, safe and clean UI for operational teams
 
-Official documentation:
-[https://docs.ansible-semaphore.com](https://docs.ansible-semaphore.com)
+Official docs: [https://docs.ansible-semaphore.com](https://docs.ansible-semaphore.com)
 
 ---
 
-## 🎯 Purpose of This Role
+## Purpose of This Role
 
-The goal of this role is to:
+The objective of this role is to:
 
-* Install Semaphore consistently across different operating systems
+* Install Semaphore consistently across multiple OS families
 * Allow DB selection (PostgreSQL or MySQL) via variables
-* Follow Ansible best practices like FQMN, handlers, OS checks, etc.
-* Provide an automated, reproducible installation method
-* Support real-world use cases including AWS EC2 dynamic inventory
+* Follow Ansible best practices (FQMN, handlers, OS checks)
+* Provide a fully automated and reproducible installation
+* Work seamlessly with AWS dynamic inventory
 
 ---
 
-## 🔗 Reference Links
-
-| Purpose                     | Link                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| Semaphore Ansible Role Repo | [https://github.com/OT-OSM/semaphoreui](https://github.com/OT-OSM/semaphoreui) |
-| Semaphore Official Docs     | [https://docs.ansible-semaphore.com](https://docs.ansible-semaphore.com)       |
-| Ansible Official Docs       | [https://docs.ansible.com](https://docs.ansible.com)                           |
-
----
-
-## 🖥 Supported Operating Systems
+## Supported Operating Systems
 
 | OS Family    | Versions               |
 | ------------ | ---------------------- |
@@ -63,11 +38,11 @@ The goal of this role is to:
 | RedHat       | CentOS 8+, RHEL 8+     |
 | Amazon Linux | Amazon Linux 2         |
 
-OS validation is automatic using `ansible_os_family`.
+OS detection is done using `ansible_os_family`.
 
 ---
 
-## ⚙️ Prerequisites
+## Prerequisites
 
 ### System Requirements
 
@@ -78,15 +53,15 @@ OS validation is automatic using `ansible_os_family`.
 | Access      | SSH + sudo     |
 | Internet    | Required       |
 
-### Inside Virtualenv
+### Python venv Requirements
 
-| Package               | Purpose                         |
-| --------------------- | ------------------------------- |
-| ansible               | Required for playbook execution |
-| boto3 & botocore      | AWS dynamic inventory           |
-| amazon.aws collection | Required by aws_ec2 plugin      |
+| Package               | Purpose                |
+| --------------------- | ---------------------- |
+| ansible               | Playbook execution     |
+| boto3 & botocore      | AWS dynamic inventory  |
+| amazon.aws collection | `aws_ec2` plugin usage |
 
-Install dependencies:
+Install:
 
 ```bash
 pip install ansible boto3 botocore
@@ -95,7 +70,7 @@ ansible-galaxy collection install amazon.aws
 
 ---
 
-## 🧰 Virtual Environment Setup
+## Virtual Environment Setup
 
 ```bash
 python3 -m venv ansible-venv
@@ -105,7 +80,7 @@ pip install ansible
 
 ---
 
-## 📂 Role Directory Structure
+## Role Directory Structure
 
 ```
 roles/
@@ -124,23 +99,9 @@ semaphore.yml
 
 ---
 
-## 🏆 Best Practices Implemented
+## Database Configuration
 
-| Practice                   | Description                         |
-| -------------------------- | ----------------------------------- |
-| FQMN                       | Uses `ansible.builtin.*` everywhere |
-| Handlers                   | Systemd reload handled cleanly      |
-| Flush handlers             | Ensures service starts correctly    |
-| OS Detection               | Install logic per OS family         |
-| DB Dialect Switching       | PostgreSQL ↔ MySQL support          |
-| Clean Directory Management | Only needed paths created           |
-| No embedded DB install     | DB treated as external dependency   |
-
----
-
-## 🗄 Database Configuration
-
-### PostgreSQL
+### PostgreSQL Example
 
 ```yaml
 pg_host: "127.0.0.1"
@@ -150,7 +111,7 @@ pg_pass: "semaphore"
 pg_db: "semaphore"
 ```
 
-### MySQL
+### MySQL Example
 
 ```yaml
 mysql_host: "127.0.0.1"
@@ -160,7 +121,7 @@ mysql_pass: "semaphore"
 mysql_db: "semaphore"
 ```
 
-### Switch DB Dialect
+### Choose Dialect
 
 Edit:
 
@@ -176,7 +137,7 @@ semaphore_db_dialect: postgres   # or mysql
 
 ---
 
-## 🛠 Installing PostgreSQL (Optional for Testing)
+## Installing PostgreSQL (Optional)
 
 ```bash
 sudo apt install postgresql postgresql-contrib -y
@@ -186,12 +147,11 @@ sudo -u postgres psql
 ```sql
 CREATE ROLE semaphore LOGIN PASSWORD 'semaphore';
 CREATE DATABASE semaphore OWNER semaphore;
-\q
 ```
 
 ---
 
-## 🛠 Installing MySQL (Optional for Testing)
+## Installing MySQL (Optional)
 
 ```bash
 sudo apt install mysql-server -y
@@ -203,12 +163,11 @@ CREATE DATABASE semaphore;
 CREATE USER 'semaphore'@'localhost' IDENTIFIED BY 'semaphore';
 GRANT ALL PRIVILEGES ON semaphore.* TO 'semaphore'@'localhost';
 FLUSH PRIVILEGES;
-EXIT;
 ```
 
 ---
 
-## ▶️ Running the Playbook
+## Running the Playbook
 
 ```bash
 ansible-playbook -i inventory/aws_ec2.yml semaphore.yml -u ubuntu --private-key ~/your-key.pem
@@ -222,7 +181,7 @@ failed=0
 
 ---
 
-## 🔍 Testing Semaphore
+## Testing Semaphore
 
 ### Service status
 
@@ -230,7 +189,7 @@ failed=0
 sudo systemctl status semaphore
 ```
 
-### Test if service responds
+### Check port
 
 ```bash
 curl -I http://localhost:3000
@@ -244,20 +203,52 @@ http://<EC2_PUBLIC_IP>:3000
 
 ---
 
-## ❗ Troubleshooting
+## Best Practices Implemented
 
-| Issue                   | Fix                                |
-| ----------------------- | ---------------------------------- |
-| Semaphore not starting  | `journalctl -u semaphore -n 50`    |
-| Wrong DB credentials    | Check `/etc/semaphore/config.json` |
-| Port 3000 busy          | `sudo lsof -i:3000`                |
-| Dynamic inventory fails | Reinstall `amazon.aws`             |
-| apt/dpkg lock           | `sudo dpkg --configure -a`         |
+| Practice                  | Description                     |
+| ------------------------- | ------------------------------- |
+| FQMN                      | Uses `ansible.builtin.*`        |
+| Handlers                  | Clean systemd reload            |
+| Flush handlers            | Ensures correct service startup |
+| OS Detection              | Installs per OS family          |
+| DB Dialect Switching      | PostgreSQL/MySQL support        |
+| Proper directory handling | Limited to required paths       |
+| External DB assumption    | No embedded database            |
 
 ---
 
-## 📜 Conclusion
+## Troubleshooting
 
-This repository provides a complete, OS-independent, production-ready Ansible role to install Semaphore with full DB switching, testing steps, and troubleshooting guidance.
+| Issue                  | Fix                                 |
+| ---------------------- | ----------------------------------- |
+| Semaphore not starting | `journalctl -u semaphore -n 50`     |
+| DB connection refused  | Verify `/etc/semaphore/config.json` |
+| Port 3000 busy         | `sudo lsof -i:3000`                 |
+| AWS inventory missing  | Reinstall `amazon.aws` collection   |
+| apt/dpkg lock          | `sudo dpkg --configure -a`          |
+
+---
+
+## Conclusion
+
+This role provides a fully automated, production-ready setup of Semaphore across multiple environments.
+It is simple to extend, easy to override using variables, and ideal for both local and cloud deployments.
+
+---
+
+
+## Reference Links
+
+| Purpose                     | Link                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| Semaphore Ansible Role Repo | [https://github.com/OT-OSM/semaphoreui](https://github.com/OT-OSM/semaphoreui) |
+| Semaphore Official Docs     | [https://docs.ansible-semaphore.com](https://docs.ansible-semaphore.com)       |
+| Ansible Official Docs       | [https://docs.ansible.com](https://docs.ansible.com)                           |
+
+---
+
+**Author:** Divya Mishra
+
+**Last Updated on:** 10-Dec-2025
 
 ---
